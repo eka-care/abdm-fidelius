@@ -16,7 +16,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.crypto.Cipher;
 import javax.crypto.KeyAgreement;
+import javax.crypto.spec.GCMParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 import java.math.BigInteger;
 import java.security.KeyFactory;
 import java.security.PrivateKey;
@@ -60,16 +63,11 @@ public class DecryptionController {
         String decryptedData = "";
         byte[] encryptedBytes = getBytesForBase64String(stringToDecrypt);
 
-        GCMBlockCipher cipher = new GCMBlockCipher(new AESEngine());
-        AEADParameters parameters =
-                new AEADParameters(new KeyParameter(aesKey), 128, iv, null);
-
-        cipher.init(false, parameters);
-        byte[] plainBytes = new byte[cipher.getOutputSize(encryptedBytes.length)];
-        int retLen = cipher.processBytes
-                (encryptedBytes, 0, encryptedBytes.length, plainBytes, 0);
-        cipher.doFinal(plainBytes, retLen);
-
+        SecretKeySpec keySpec = new SecretKeySpec(aesKey, "AES");
+        GCMParameterSpec gcmSpec = new GCMParameterSpec(128, iv);
+        Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+        cipher.init(Cipher.DECRYPT_MODE, keySpec, gcmSpec);
+        byte[] plainBytes = cipher.doFinal(encryptedBytes);
         decryptedData = new String(plainBytes);
 
         return decryptedData;

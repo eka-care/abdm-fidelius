@@ -18,7 +18,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.crypto.Cipher;
 import javax.crypto.KeyAgreement;
+import javax.crypto.spec.GCMParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 import java.math.BigInteger;
 import java.security.KeyFactory;
 import java.security.PrivateKey;
@@ -70,17 +73,12 @@ public class EncryptionController {
         try {
             byte[] stringBytes = stringToEncrypt.getBytes();
 
-            GCMBlockCipher cipher = new GCMBlockCipher(new AESEngine());
-            AEADParameters parameters =
-                    new AEADParameters(new KeyParameter(aesKey), 128, iv, null);
-
-            cipher.init(true, parameters);
-            byte[] plainBytes = new byte[cipher.getOutputSize(stringBytes.length)];
-            int retLen = cipher.processBytes
-                    (stringBytes, 0, stringBytes.length, plainBytes, 0);
-            cipher.doFinal(plainBytes, retLen);
-
-            encryptedData = getBase64String(plainBytes);
+            SecretKeySpec keySpec = new SecretKeySpec(aesKey, "AES");
+            GCMParameterSpec gcmSpec = new GCMParameterSpec(128, iv);
+            Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+            cipher.init(Cipher.ENCRYPT_MODE, keySpec, gcmSpec);
+            byte[] encryptedBytes = cipher.doFinal(stringBytes);
+            encryptedData = getBase64String(encryptedBytes);
         } catch (Exception e) {
             System.out.println(e.getLocalizedMessage());
         }
